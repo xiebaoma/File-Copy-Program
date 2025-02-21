@@ -13,7 +13,7 @@ A simple file copying program that provides two implementations of the same func
 To get started, clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/File-Copy-Program.git
+git clone https://github.com/xiebaoma/File-Copy-Program.git
 cd File-Copy-Program
 ```
 
@@ -23,13 +23,7 @@ cd File-Copy-Program
 
    - Open a terminal and navigate to the project directory.
 
-   - Use 
-
-     ```
-     g++
-     ```
-
-      to compile the program:
+   - Use g++to compile the program:
 
      ```bash
      g++ -o file_copy file_copy.cpp
@@ -39,13 +33,7 @@ cd File-Copy-Program
 
    - Open a terminal and navigate to the project directory.
 
-   - Use a C++ compiler such as 
-
-     ```
-     g++
-     ```
-
-      from MinGW or MSVC to build:
+   - Use a C++ compiler such as g++ from MinGW or MSVC to build:
 
      ```bash
      g++ -o file_copy file_copy.cpp
