@@ -22,37 +22,51 @@ typedef long ssize_t; // 为 Windows 定义 ssize_t
 // 使用低级 I/O 的文件复制函数
 bool copyFileLowLevel(const char *source, const char *destination)
 {
+    // 打开源文件
     int sourceFile = open(source, READ_FLAGS);
     if (sourceFile == -1)
     {
-        std::cerr << "无法打开源文件" << std::endl;
+        std::cerr << "无法打开源文件: " << source << ", 错误信息: " << strerror(errno) << std::endl;
         return false;
     }
 
+    // 打开目标文件
     int destFile = open(destination, WRITE_FLAGS, PERMISSION);
     if (destFile == -1)
     {
-        close(sourceFile);
-        std::cerr << "无法创建目标文件" << std::endl;
+        std::cerr << "无法创建目标文件: " << destination << ", 错误信息: " << strerror(errno) << std::endl;
+        close(sourceFile); // 确保源文件被关闭
         return false;
     }
 
     char buffer[BUFFER_SIZE];
-    ssize_t bytesRead; // 删除重复的 bytesRead
+    ssize_t bytesRead;
 
+    // 循环读取源文件并写入目标文件
     while ((bytesRead = read(sourceFile, buffer, BUFFER_SIZE)) > 0)
     {
-        if (write(destFile, buffer, bytesRead) != bytesRead)
+        // 写入目标文件
+        ssize_t bytesWritten = write(destFile, buffer, bytesRead);
+        if (bytesWritten != bytesRead)
         {
+            std::cerr << "写入错误，写入字节数与预期不符" << std::endl;
             close(sourceFile);
             close(destFile);
-            std::cerr << "写入错误" << std::endl;
             return false;
         }
     }
 
+    // 检查读取源文件是否遇到错误
+    if (bytesRead == -1)
+    {
+        std::cerr << "读取源文件时出错, 错误信息: " << strerror(errno) << std::endl;
+    }
+
+    // 关闭文件描述符
     close(sourceFile);
     close(destFile);
+
+    // 返回值：如果读取完文件且没有错误，返回 true
     return bytesRead >= 0;
 }
 
@@ -62,15 +76,15 @@ bool copyFileAnsi(const char *source, const char *destination)
     FILE *sourceFile = fopen(source, "rb");
     if (!sourceFile)
     {
-        std::cerr << "无法打开源文件" << std::endl;
+        std::cerr << "无法打开源文件: " << source << std::endl;
         return false;
     }
 
     FILE *destFile = fopen(destination, "wb");
     if (!destFile)
     {
-        fclose(sourceFile);
-        std::cerr << "无法创建目标文件" << std::endl;
+        std::cerr << "无法创建目标文件: " << destination << std::endl;
+        fclose(sourceFile); // 确保在出错时关闭源文件
         return false;
     }
 
@@ -79,13 +93,35 @@ bool copyFileAnsi(const char *source, const char *destination)
 
     while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, sourceFile)) > 0)
     {
-        if (fwrite(buffer, 1, bytesRead, destFile) != bytesRead)
+        if (ferror(sourceFile))
         {
+            std::cerr << "读取源文件时发生错误" << std::endl;
             fclose(sourceFile);
             fclose(destFile);
-            std::cerr << "写入错误" << std::endl;
             return false;
         }
+
+        size_t bytesWritten = fwrite(buffer, 1, bytesRead, destFile);
+        if (bytesWritten != bytesRead)
+        {
+            std::cerr << "写入目标文件时发生错误: 写入的字节数 (" << bytesWritten << ") 与读取的字节数 (" << bytesRead << ") 不一致" << std::endl;
+            fclose(sourceFile);
+            fclose(destFile);
+            return false;
+        }
+
+        if (ferror(destFile))
+        {
+            std::cerr << "写入目标文件时发生错误" << std::endl;
+            fclose(sourceFile);
+            fclose(destFile);
+            return false;
+        }
+    }
+
+    if (ferror(sourceFile))
+    {
+        std::cerr << "读取源文件时发生错误" << std::endl;
     }
 
     fclose(sourceFile);
